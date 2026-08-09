@@ -355,3 +355,49 @@ export const adminUpdateFeatureFlag = onCall({ enforceAppCheck: false }, async (
 
   return { ok: true };
 });
+
+// ─── Public Blog Functions (no auth required) ──────────────
+export const getBlogPosts = onCall({ enforceAppCheck: false }, async () => {
+  const snapshot = await db.collection('blogPosts')
+    .where('status', '==', 'published')
+    .orderBy('createdAt', 'desc')
+    .get();
+
+  return {
+    posts: snapshot.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        title: d.title || '',
+        slug: d.slug || doc.id,
+        excerpt: d.excerpt || '',
+        category: d.category || 'general',
+        coverImage: d.coverImage || null,
+        createdAt: d.createdAt?.toDate?.()?.toISOString() || null,
+      };
+    }),
+  };
+});
+
+export const getBlogPost = onCall({ enforceAppCheck: false }, async (request) => {
+  const { slug } = request.data;
+  if (!slug) throw new HttpsError('invalid-argument', 'slug required');
+
+  const snapshot = await db.collection('blogPosts').where('slug', '==', slug).limit(1).get();
+  if (snapshot.empty) throw new HttpsError('not-found', 'Post not found');
+
+  const doc = snapshot.docs[0];
+  const d = doc.data();
+  return {
+    post: {
+      id: doc.id,
+      title: d.title || '',
+      slug: d.slug || doc.id,
+      excerpt: d.excerpt || '',
+      content: d.content || '',
+      category: d.category || 'general',
+      coverImage: d.coverImage || null,
+      createdAt: d.createdAt?.toDate?.()?.toISOString() || null,
+    },
+  };
+});

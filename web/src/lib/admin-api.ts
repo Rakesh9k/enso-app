@@ -55,7 +55,7 @@ export async function fetchAIJobs() {
 }
 
 // ─── Content ────────────────────────────────────────────────
-export async function fetchBlogPosts() {
+export async function adminFetchBlogPosts() {
   return call<any>('adminListBlogPosts');
 }
 
@@ -75,4 +75,13 @@ export async function fetchFeatureFlags() {
 
 export async function updateFeatureFlag(id: string, updates: { enabled?: boolean; rolloutPercentage?: number }) {
   return call<any>('adminUpdateFeatureFlag', { id, ...updates });
+}
+
+// ─── Public Blog (no auth required) ────────────────────────
+export async function fetchBlogPosts() {
+  return call<any>('getBlogPosts');
+}
+
+export async function fetchBlogPost(slug: string) {
+  return call<any>('getBlogPost', { slug });
 }

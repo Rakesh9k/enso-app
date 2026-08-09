@@ -25,4 +25,6 @@ export {
   adminListAuditLogs,
   adminListFeatureFlags,
   adminUpdateFeatureFlag,
+  getBlogPosts,
+  getBlogPost,
 } from "./admin/callables";

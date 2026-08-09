@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchBlogPosts } from '@/lib/admin-api';
+import { adminFetchBlogPosts } from '@/lib/admin-api';
 
 interface BlogPost {
   id: string;
@@ -17,7 +17,7 @@ export default function BlogAdminPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchBlogPosts()
+    adminFetchBlogPosts()
       .then((data) => setPosts(data.posts))
       .catch(() => {})
       .finally(() => setLoading(false));

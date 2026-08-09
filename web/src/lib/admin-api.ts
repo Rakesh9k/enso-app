@@ -102,3 +102,12 @@ export async function fetchPortalInsights() {
 export async function fetchPortalProfile() {
   return call<any>('getPortalProfile');
 }
+
+// ─── Partner Portal (auth required) ────────────────────────
+export async function fetchPartnerDashboard() {
+  return call<any>('getPartnerDashboard');
+}
+
+export async function fetchPartnerStats() {
+  return call<any>('getPartnerDashboard');
+}

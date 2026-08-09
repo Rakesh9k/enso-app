@@ -48,7 +48,7 @@ export default function RootLayout({
               '@type': 'Organization',
               name: 'Enso',
               url: 'https://ensomode.com',
-              logo: 'https://ensomode.com/logo.png',
+              logo: 'https://ensomode.com/logo.svg',
               description:
                 'An AI-powered wellness companion for reflection and gentle growth.',
             }),

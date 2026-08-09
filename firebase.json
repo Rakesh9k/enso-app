@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "out",
+    "public": "web/out",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       { "source": "/api/**", "function": "nextServer" },

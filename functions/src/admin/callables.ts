@@ -401,3 +401,107 @@ export const getBlogPost = onCall({ enforceAppCheck: false }, async (request) =>
     },
   };
 });
+
+// ─── Portal Functions (auth required) ──────────────────────
+export const getPortalDashboard = onCall({ enforceAppCheck: false }, async (request, context) => {
+  if (!context.auth) throw new HttpsError('unauthenticated', 'Login required');
+  const uid = context.auth.uid;
+
+  const [userDoc, journalSnap, meditationSnap, insightsSnap] = await Promise.all([
+    db.collection('users').doc(uid).get(),
+    db.collection('journalEntries').where('uid', '==', uid).get(),
+    db.collection('meditationSessions').where('uid', '==', uid).get(),
+    db.collection('aiInsights').where('uid', '==', uid).get(),
+  ]);
+
+  const userData = userDoc.data() || {};
+
+  return {
+    stats: {
+      journals: journalSnap.size,
+      meditationMinutes: userData.meditationMinutes || 0,
+      insights: insightsSnap.size,
+      streak: userData.currentStreak || 0,
+    },
+    displayName: userData.displayName || context.auth.token?.name || 'there',
+    subscription: userData.subscription || 'free',
+  };
+});
+
+export const getPortalJournal = onCall({ enforceAppCheck: false }, async (request, context) => {
+  if (!context.auth) throw new HttpsError('unauthenticated', 'Login required');
+  const uid = context.auth.uid;
+  const { limit = 20 } = request.data || {};
+
+  const snapshot = await db.collection('journalEntries')
+    .where('uid', '==', uid)
+    .orderBy('createdAt', 'desc')
+    .limit(limit)
+    .get();
+
+  return {
+    entries: snapshot.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        content: d.content || '',
+        type: d.type || 'text',
+        mood: d.mood || null,
+        tags: d.tags || [],
+        createdAt: d.createdAt?.toDate?.()?.toISOString() || null,
+      };
+    }),
+  };
+});
+
+export const getPortalInsights = onCall({ enforceAppCheck: false }, async (request, context) => {
+  if (!context.auth) throw new HttpsError('unauthenticated', 'Login required');
+  const uid = context.auth.uid;
+
+  const [insightsSnap, journalSnap, meditationSnap] = await Promise.all([
+    db.collection('aiInsights').where('uid', '==', uid).orderBy('createdAt', 'desc').limit(10).get(),
+    db.collection('journalEntries').where('uid', '==', uid).get(),
+    db.collection('meditationSessions').where('uid', '==', uid).get(),
+  ]);
+
+  return {
+    insights: insightsSnap.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        title: d.title || '',
+        description: d.description || '',
+        type: d.type || 'pattern',
+        createdAt: d.createdAt?.toDate?.()?.toISOString() || null,
+      };
+    }),
+    summary: {
+      totalJournals: journalSnap.size,
+      totalMeditationSessions: meditationSnap.size,
+    },
+  };
+});
+
+export const getPortalProfile = onCall({ enforceAppCheck: false }, async (_request, context) => {
+  if (!context.auth) throw new HttpsError('unauthenticated', 'Login required');
+  const uid = context.auth.uid;
+
+  const userDoc = await db.collection('users').doc(uid).get();
+  const d = userDoc.data() || {};
+
+  return {
+    profile: {
+      uid,
+      email: d.email || context.auth.token?.email || null,
+      displayName: d.displayName || context.auth.token?.name || null,
+      photoURL: d.photoURL || context.auth.token?.picture || null,
+      subscription: d.subscription || 'free',
+      journalCount: d.journalCount || 0,
+      meditationMinutes: d.meditationMinutes || 0,
+      currentStreak: d.currentStreak || 0,
+      createdAt: d.createdAt?.toDate?.()?.toISOString() || null,
+      isAdmin: context.auth.token?.admin === true,
+      isPartner: d.isPartner === true,
+    },
+  };
+});

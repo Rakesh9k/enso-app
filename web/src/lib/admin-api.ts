@@ -85,3 +85,20 @@ export async function fetchBlogPosts() {
 export async function fetchBlogPost(slug: string) {
   return call<any>('getBlogPost', { slug });
 }
+
+// ─── Portal (auth required) ────────────────────────────────
+export async function fetchPortalDashboard() {
+  return call<any>('getPortalDashboard');
+}
+
+export async function fetchPortalJournal(limit = 20) {
+  return call<any>('getPortalJournal', { limit });
+}
+
+export async function fetchPortalInsights() {
+  return call<any>('getPortalInsights');
+}
+
+export async function fetchPortalProfile() {
+  return call<any>('getPortalProfile');
+}

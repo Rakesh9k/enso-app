@@ -27,4 +27,8 @@ export {
   adminUpdateFeatureFlag,
   getBlogPosts,
   getBlogPost,
+  getPortalDashboard,
+  getPortalJournal,
+  getPortalInsights,
+  getPortalProfile,
 } from "./admin/callables";

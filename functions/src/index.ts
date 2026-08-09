@@ -7,3 +7,22 @@ export { getRevenueCatPortalStatus } from "./partner/subscriptionPortal";
 export { onDailySessionWritten, onJournalEntryWritten } from "./triggers";
 export { processNotificationQueue } from "./notify";
 export { scheduledWeeklyInsight, scheduledMonthlyInsight } from "./pipelines";
+
+// Admin panel callable functions
+export {
+  adminGetDashboard,
+  adminListUsers,
+  adminGetUser,
+  adminUpdateUser,
+  adminDeleteUser,
+  adminListSubscriptions,
+  adminListPartners,
+  adminGetPartner,
+  adminUpdatePartner,
+  adminListAIJobs,
+  adminListBlogPosts,
+  adminGetSystemHealth,
+  adminListAuditLogs,
+  adminListFeatureFlags,
+  adminUpdateFeatureFlag,
+} from "./admin/callables";

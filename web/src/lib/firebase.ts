@@ -22,4 +22,4 @@ const functions = getFunctions(app);
 const googleProvider = new GoogleAuthProvider();
 const appleProvider = new OAuthProvider('apple.com');
 
-export { auth, db, storage, functions, googleProvider, appleProvider };
+export { app, auth, db, storage, functions, googleProvider, appleProvider };

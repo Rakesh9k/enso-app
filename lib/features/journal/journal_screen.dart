@@ -1,8 +1,14 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -18,6 +24,11 @@ class JournalScreen extends ConsumerStatefulWidget {
 class _JournalScreenState extends ConsumerState<JournalScreen> {
   final _controller = TextEditingController();
   bool _isPremium = false;
+  bool _isRecording = false;
+  bool _isUploading = false;
+  Duration _recordDuration = Duration.zero;
+  Timer? _recordTimer;
+  final _audioRecorder = AudioRecorder();
 
   @override
   void initState() {
@@ -39,6 +50,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _recordTimer?.cancel();
+    _audioRecorder.dispose();
     super.dispose();
   }
 
@@ -60,7 +73,6 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       ),
       body: Column(
         children: [
-          // Journal entry area
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -102,29 +114,49 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
             ),
           ),
 
-          // Voice journaling (premium only)
+          // Voice journaling area
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
             child: Row(
               children: [
                 if (_isPremium)
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: AppColors.paperLight,
-                        borderRadius: AppRadius.buttonRadius,
-                        border: Border.all(color: AppColors.ensoLight),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.mic, color: AppColors.primary, size: 20),
-                          const SizedBox(width: AppSpacing.sm),
-                          Text(
-                            'Voice Journal',
-                            style: AppTypography.bodySmall.copyWith(color: AppColors.inkSecondary),
+                    child: GestureDetector(
+                      onLongPress: _isRecording ? null : _startRecording,
+                      onLongPressEnd: _isRecording ? (_) => _stopRecording() : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          color: _isRecording
+                              ? AppColors.danger.withValues(alpha: 0.1)
+                              : AppColors.paperLight,
+                          borderRadius: AppRadius.buttonRadius,
+                          border: Border.all(
+                            color: _isRecording ? AppColors.danger : AppColors.ensoLight,
                           ),
-                        ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _isRecording ? Icons.stop : Icons.mic,
+                              color: _isRecording ? AppColors.danger : AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                _isRecording
+                                    ? _formatDuration(_recordDuration)
+                                    : _isUploading
+                                        ? 'Uploading...'
+                                        : 'Hold to record',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: _isRecording ? AppColors.danger : AppColors.inkSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   )
@@ -136,10 +168,10 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [AppColors.primary.withOpacity(0.1), AppColors.primary.withOpacity(0.05)],
+                            colors: [AppColors.primary.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.05)],
                           ),
                           borderRadius: AppRadius.buttonRadius,
-                          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           children: [
@@ -166,8 +198,11 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                   ),
                 const SizedBox(width: AppSpacing.md),
                 IconButton(
-                  onPressed: _saveEntry,
-                  icon: const Icon(Icons.send, color: AppColors.primary),
+                  onPressed: _isUploading ? null : _saveEntry,
+                  icon: Icon(
+                    Icons.send,
+                    color: _isUploading ? AppColors.enso : AppColors.primary,
+                  ),
                 ),
               ],
             ),
@@ -194,6 +229,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                   itemBuilder: (context, index) {
                     final entry = snapshot.data!.docs[index].data() as Map<String, dynamic>;
                     final content = entry['content'] ?? '';
+                    final type = entry['type'] ?? 'text';
                     final createdAt = entry['createdAt'] as Timestamp?;
                     return Container(
                       width: 160,
@@ -207,9 +243,21 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            createdAt != null ? _formatDate(createdAt.toDate()) : '',
-                            style: AppTypography.caption.copyWith(color: AppColors.inkSecondary),
+                          Row(
+                            children: [
+                              Icon(
+                                type == 'voice' ? Icons.mic : Icons.edit,
+                                size: 12,
+                                color: AppColors.inkSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  createdAt != null ? _formatDate(createdAt.toDate()) : '',
+                                  style: AppTypography.caption.copyWith(color: AppColors.inkSecondary),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: AppSpacing.xs),
                           Expanded(
@@ -243,6 +291,99 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.month}/${date.day}';
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  Future<void> _startRecording() async {
+    final status = await Permission.microphone.request();
+    if (!status.isGranted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Microphone permission is required for voice journaling')),
+        );
+      }
+      return;
+    }
+
+    if (!await _audioRecorder.hasPermission()) return;
+
+    final dir = await getTemporaryDirectory();
+    final path = '${dir.path}/journal_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+    await _audioRecorder.start(
+      RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        bitRate: 128000,
+        sampleRate: 44100,
+      ),
+      path: path,
+    );
+
+    setState(() {
+      _isRecording = true;
+      _recordDuration = Duration.zero;
+    });
+
+    _recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _recordDuration += const Duration(seconds: 1);
+        });
+      }
+    });
+  }
+
+  Future<void> _stopRecording() async {
+    _recordTimer?.cancel();
+    final path = await _audioRecorder.stop();
+
+    setState(() {
+      _isRecording = false;
+    });
+
+    if (path != null && mounted) {
+      setState(() => _isUploading = true);
+      final file = File(path);
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
+
+        final fileName = 'voice_journals/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.m4a';
+        final ref = FirebaseStorage.instance.ref().child(fileName);
+        await ref.putFile(file);
+        final audioUrl = await ref.getDownloadURL();
+
+        await FirebaseFirestore.instance.collection('journalEntries').add({
+          'uid': user.uid,
+          'content': _controller.text.trim().isNotEmpty ? _controller.text.trim() : 'Voice journal entry',
+          'audioUrl': audioUrl,
+          'durationSeconds': _recordDuration.inSeconds,
+          'type': 'voice',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        _controller.clear();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Voice entry saved')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Upload failed: $e')),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isUploading = false);
+        await file.delete();
+      }
+    }
   }
 
   Future<void> _saveEntry() async {

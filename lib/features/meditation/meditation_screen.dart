@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,11 +20,22 @@ class _MeditationScreenState extends ConsumerState<MeditationScreen> {
   bool _isTimerRunning = false;
   int _selectedMinutes = 5;
   int _elapsedSeconds = 0;
+  Timer? _timer;
 
   final _durations = [3, 5, 10, 15, 20, 30];
 
   @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final totalSeconds = _selectedMinutes * 60;
+    final remaining = totalSeconds - _elapsedSeconds;
+    final progress = _isTimerRunning ? _elapsedSeconds / totalSeconds : 0.0;
+
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: AppBar(
@@ -31,7 +43,10 @@ class _MeditationScreenState extends ConsumerState<MeditationScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.ink, size: 20),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            _timer?.cancel();
+            context.pop();
+          },
         ),
         title: Text('Stillness', style: AppTypography.heading2.copyWith(color: AppColors.ink)),
         centerTitle: true,
@@ -42,54 +57,76 @@ class _MeditationScreenState extends ConsumerState<MeditationScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Timer circle
               GestureDetector(
                 onTap: _toggleTimer,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _isTimerRunning ? AppColors.primary.withOpacity(0.1) : AppColors.paperLight,
-                    border: Border.all(
-                      color: _isTimerRunning ? AppColors.primary : AppColors.enso,
-                      width: 2,
-                    ),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_isTimerRunning) ...[
-                          Text(
-                            _formatTime(_selectedMinutes * 60 - _elapsedSeconds),
-                            style: AppTypography.heading1.copyWith(
-                              color: AppColors.ink,
-                              fontSize: 36,
-                            ),
+                child: SizedBox(
+                  width: 220,
+                  height: 220,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 220,
+                        height: 220,
+                        child: CircularProgressIndicator(
+                          value: _isTimerRunning ? progress : 0.0,
+                          strokeWidth: 3,
+                          backgroundColor: AppColors.enso.withValues(alpha: 0.2),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _isTimerRunning ? AppColors.primary : AppColors.enso,
                           ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            'breathing',
-                            style: AppTypography.caption.copyWith(color: AppColors.inkSecondary),
+                          strokeCap: StrokeCap.round,
+                        ),
+                      ),
+                      Container(
+                        width: 180,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _isTimerRunning
+                              ? AppColors.primary.withValues(alpha: 0.05)
+                              : AppColors.paperLight,
+                          border: Border.all(
+                            color: _isTimerRunning ? AppColors.primary : AppColors.enso,
+                            width: 2,
                           ),
-                        ] else ...[
-                          const Icon(Icons.play_arrow, color: AppColors.ink, size: 48),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            '$_selectedMinutes min',
-                            style: AppTypography.body.copyWith(color: AppColors.inkSecondary),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_isTimerRunning) ...[
+                                Text(
+                                  _formatTime(remaining),
+                                  style: AppTypography.heading1.copyWith(
+                                    color: AppColors.ink,
+                                    fontSize: 36,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  'breathing',
+                                  style: AppTypography.caption.copyWith(color: AppColors.inkSecondary),
+                                ),
+                              ] else ...[
+                                const Icon(Icons.play_arrow, color: AppColors.ink, size: 48),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  '$_selectedMinutes min',
+                                  style: AppTypography.body.copyWith(color: AppColors.inkSecondary),
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
-                      ],
-                    ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
               const SizedBox(height: AppSpacing.xl),
 
-              // Duration selector
               if (!_isTimerRunning)
                 Wrap(
                   spacing: AppSpacing.sm,
@@ -119,7 +156,6 @@ class _MeditationScreenState extends ConsumerState<MeditationScreen> {
 
               const SizedBox(height: AppSpacing.xl),
 
-              // Controls
               if (_isTimerRunning)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -133,9 +169,10 @@ class _MeditationScreenState extends ConsumerState<MeditationScreen> {
 
               const SizedBox(height: AppSpacing.xl),
 
-              // Session info
               Text(
-                'Find a comfortable position.\nClose your eyes or soften your gaze.',
+                _isTimerRunning
+                    ? 'Breathe in slowly... hold... breathe out gently.'
+                    : 'Find a comfortable position.\nClose your eyes or soften your gaze.',
                 textAlign: TextAlign.center,
                 style: AppTypography.body.copyWith(
                   color: AppColors.inkSecondary,
@@ -165,17 +202,49 @@ class _MeditationScreenState extends ConsumerState<MeditationScreen> {
   }
 
   void _startTimer() {
-    setState(() { _isTimerRunning = true; _elapsedSeconds = 0; });
-    // In production, this would use a proper timer
+    setState(() {
+      _isTimerRunning = true;
+      _elapsedSeconds = 0;
+    });
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _elapsedSeconds++;
+      });
+      if (_elapsedSeconds >= _selectedMinutes * 60) {
+        _completeTimer();
+      }
+    });
   }
 
   void _stopTimer() {
-    setState(() { _isTimerRunning = false; });
-    // Save session to Firestore
-    _saveSession();
+    _timer?.cancel();
+    setState(() {
+      _isTimerRunning = false;
+    });
+    _saveSession(completed: false);
   }
 
-  Future<void> _saveSession() async {
+  void _completeTimer() {
+    _timer?.cancel();
+    setState(() {
+      _isTimerRunning = false;
+    });
+    _saveSession(completed: true);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Session complete. $_selectedMinutes minutes of stillness.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  Future<void> _saveSession({required bool completed}) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _elapsedSeconds < 10) return;
 
@@ -183,7 +252,8 @@ class _MeditationScreenState extends ConsumerState<MeditationScreen> {
       'uid': user.uid,
       'durationSeconds': _elapsedSeconds,
       'plannedMinutes': _selectedMinutes,
-      'completedAt': FieldValue.serverTimestamp(),
+      'completed': completed,
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 }

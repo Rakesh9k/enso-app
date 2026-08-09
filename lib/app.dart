@@ -1,26 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/theme/enso_theme.dart';
+import 'core/router/app_router.dart';
 
-class EnsoApp extends StatelessWidget {
+class EnsoApp extends ConsumerWidget {
   const EnsoApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ProviderScope(
-      child: MaterialApp(
-        title: 'Enso',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4F46E5)),
-          useMaterial3: true,
-          fontFamily: 'Inter',
-        ),
-        home: const Scaffold(
-          body: Center(
-            child: Text('Enso - Loading...'),
-          ),
-        ),
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
+      title: 'Enso',
+      debugShowCheckedModeBanner: false,
+      theme: EnsoTheme.light,
+      darkTheme: EnsoTheme.dark,
+      themeMode: ThemeMode.light,
+      routerConfig: router,
     );
   }
 }

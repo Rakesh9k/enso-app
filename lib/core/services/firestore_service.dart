@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -14,7 +15,7 @@ class FirestoreService {
   Stream<QuerySnapshot> getJournalEntries(String uid, {int limit = 50}) {
     return _db
         .collection('journalEntries')
-        .where('uid', '==', uid)
+        .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots();
@@ -31,7 +32,7 @@ class FirestoreService {
   Stream<QuerySnapshot> getMeditationSessions(String uid, {int limit = 50}) {
     return _db
         .collection('meditationSessions')
-        .where('uid', '==', uid)
+        .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots();
@@ -48,7 +49,7 @@ class FirestoreService {
   Stream<QuerySnapshot> getAiInsights(String uid, {int limit = 10}) {
     return _db
         .collection('aiInsights')
-        .where('uid', '==', uid)
+        .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots();
@@ -69,7 +70,7 @@ class FirestoreService {
   Stream<QuerySnapshot> getRoomProgress(String uid) {
     return _db
         .collection('roomProgress')
-        .where('uid', '==', uid)
+        .where('uid', isEqualTo: uid)
         .snapshots();
   }
 

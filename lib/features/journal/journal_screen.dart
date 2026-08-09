@@ -177,7 +177,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('journalEntries')
-                .where('uid', '==', user?.uid)
+                .where('uid', isEqualTo: user?.uid)
                 .orderBy('createdAt', descending: true)
                 .limit(10)
                 .snapshots(),

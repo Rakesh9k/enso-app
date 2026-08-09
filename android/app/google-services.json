@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "999199950757",
+    "project_id": "enso-prod-app",
+    "storage_bucket": "enso-prod-app.appspot.com",
+    "firebase_url": "https://enso-prod-app.firebaseio.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:999199950757:android:PLACEHOLDER_ANDROID_APP_ID",
+        "android_client_info": {
+          "package_name": "com.enso.app.enso"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZ2O2sCFY-XtZ27HzXZ0vdozPVDr3FZEQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

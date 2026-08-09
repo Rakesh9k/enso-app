@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
+    function isAppCheckValid() { return request.app == null || (request.app != null && request.app.app_id != null); }
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    match /users/{userId} {
+      allow read, create, update: if isOwner(userId) && isAppCheckValid();
+      allow delete: if false;
+
+      match /journey/{docId} {
+        allow read: if isOwner(userId) && isAppCheckValid();
+        allow write: if false;
+      }
+      match /journey_milestones/{milestoneId} {
+        allow read: if isOwner(userId) && isAppCheckValid();
+        allow write: if false;
+      }
+      match /journey_events/{eventId} {
+        allow read: if isOwner(userId) && isAppCheckValid();
+        allow write: if false;
+      }
+      match /journey_progress/{dayId} {
+        allow read: if isOwner(userId) && isAppCheckValid();
+        allow write: if false;
+      }
+
+      match /{subcollection}/{document=**} {
+        allow read: if isOwner(userId) && isAppCheckValid();
+        allow write: if isOwner(userId) && isAppCheckValid()
+          && subcollection != 'journey'
+          && subcollection != 'journey_milestones'
+          && subcollection != 'journey_events'
+          && subcollection != 'journey_progress';
+      }
+    }
+
+    match /subscriptions/{eventId} {
+      allow read, write: if false;
+    }
+
+    match /partner_profiles/{partnerId} {
+      allow read: if (isOwner(partnerId) || isAdmin()) && isAppCheckValid();
+      allow write: if false;
+
+      match /ledger/{entryId} {
+        allow read: if (isOwner(partnerId) || isAdmin()) && isAppCheckValid();
+        allow write: if false;
+      }
+      match /payouts/{payoutId} {
+        allow read: if (isOwner(partnerId) || isAdmin()) && isAppCheckValid();
+        allow write: if false;
+      }
+      match /rewards/{rewardId} {
+        allow read: if (isOwner(partnerId) || isAdmin()) && isAppCheckValid();
+        allow write: if false;
+      }
+      match /academy/{moduleId} {
+        allow read: if (isOwner(partnerId) || isAdmin()) && isAppCheckValid();
+        allow write: if false;
+      }
+    }
+
+    match /partner_applications/{userId} {
+      allow read: if (isOwner(userId) || isAdmin()) && isAppCheckValid();
+      allow write: if false;
+    }
+
+    match /partner_referrals/{referralId} {
+      allow read, write: if false;
+    }
+
+    match /partner_clicks/{clickId} {
+      allow read, write: if false;
+    }
+
+    match /partner_campaigns/{campaignId} {
+      allow read: if isAuthenticated() && isAppCheckValid()
+        && (resource.data.partnerId == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    match /partner_activity/{partnerId} {
+      allow read: if (isOwner(partnerId) || isAdmin()) && isAppCheckValid();
+      allow write: if false;
+      match /events/{eventId} {
+        allow read: if (isOwner(partnerId) || isAdmin()) && isAppCheckValid();
+        allow write: if false;
+      }
+    }
+
+    match /partner_milestones/{milestoneId} {
+      allow read: if isAuthenticated() && isAppCheckValid()
+        && (resource.data.partnerId == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    match /partner_codes/{code} {
+      allow read, write: if false;
+    }
+    match /partner_config/{docId} {
+      allow read, write: if false;
+    }
+    match /partner_audit_logs/{logId} {
+      allow read, write: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read, write: if false;
+    }
+
+    match /app_config/{docId} {
+      allow read: if isAppCheckValid();
+      allow write: if false;
+    }
+  }
+}

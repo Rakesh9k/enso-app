@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #F7F3EA;
+  --color-paper-deep: #F0EBE0;
+  --color-paper-light: #FDFBF7;
+  --color-paper-warm: #F5F0E4;
+
+  --color-ink: #1C1A17;
+  --color-ink-secondary: #6E6959;
+  --color-ink-muted: #8A8475;
+  --color-ink-faint: #B5AFA3;
+
+  --color-enso: #CCBBA0;
+  --color-enso-light: #E0D5C2;
+  --color-enso-dark: #9A8B72;
+
+  --color-background: #F9FAFB;
+  --color-surface: #FFFFFF;
+  --color-primary: #4F46E5;
+  --color-primary-light: #818CF8;
+  --color-on-primary: #FFFFFF;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #DC2626;
+
+  --color-border: #E5E2DB;
+  --color-text-primary: #1C1A17;
+  --color-text-secondary: #6E6959;
+  --color-text-disabled: #5C5955;
+  --color-input-fill: #F7F3EA;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-editorial: 'Newsreader', Georgia, serif;
+
+  --radius-card: 12px;
+  --radius-pill: 24px;
+
+  --ease-ink: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-breath: cubic-bezier(0.37, 0, 0.63, 1);
+}
+
+.font-editorial {
+  font-family: var(--font-editorial);
+}
+
+.rounded-button {
+  border-radius: 10px;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s var(--ease-ink) forwards;
+}

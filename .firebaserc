@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "enso-prod-app",
+    "dev": "enso-dev-app"
+  }
+}

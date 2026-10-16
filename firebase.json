@@ -1,13 +1,31 @@
 {
   "hosting": {
     "public": "web/out",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
-      { "source": "/api/**", "function": "nextServer" },
-      { "source": "**", "destination": "/404.html" }
+      {
+        "source": "/api/**",
+        "function": "nextServer"
+      },
+      {
+        "source": "**",
+        "destination": "/404.html"
+      }
     ],
     "headers": [
-      { "source": "**", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=60" }] }
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=0, s-maxage=60"
+          }
+        ]
+      }
     ]
   },
   "firestore": {
@@ -19,10 +37,24 @@
     "runtime": "nodejs20"
   },
   "emulators": {
-    "auth": { "port": 9099 },
-    "functions": { "port": 5001 },
-    "firestore": { "port": 8080 },
-    "storage": { "port": 9199 },
-    "ui": { "enabled": true, "port": 4000 }
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    }
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

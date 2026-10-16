@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { deleteAccountDataForUid } from '../account';
 
 const db = admin.firestore();
 const auth = admin.auth();
@@ -137,8 +138,7 @@ export const adminDeleteUser = onCall({ enforceAppCheck: false }, async (request
   const { uid } = request.data;
   if (!uid) throw new HttpsError('invalid-argument', 'uid required');
 
-  await auth.deleteUser(uid);
-  await db.collection('users').doc(uid).delete();
+  await deleteAccountDataForUid(uid);
   await db.collection('adminAuditLog').add({
     action: 'delete_user', adminUid: caller.uid, adminEmail: caller.token.email,
     targetUid: uid, details: {}, timestamp: new Date(), ipAddress: 'cloud-function',

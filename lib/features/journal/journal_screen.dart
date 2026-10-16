@@ -356,12 +356,13 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         final fileName = 'voice_journals/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.m4a';
         final ref = FirebaseStorage.instance.ref().child(fileName);
         await ref.putFile(file);
-        final audioUrl = await ref.getDownloadURL();
+        // Store the private object path, not a bearer download URL.
+        final audioPath = fileName;
 
         await FirebaseFirestore.instance.collection('journalEntries').add({
           'uid': user.uid,
           'content': _controller.text.trim().isNotEmpty ? _controller.text.trim() : 'Voice journal entry',
-          'audioUrl': audioUrl,
+          'audioPath': audioPath,
           'durationSeconds': _recordDuration.inSeconds,
           'type': 'voice',
           'createdAt': FieldValue.serverTimestamp(),

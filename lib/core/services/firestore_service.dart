@@ -97,8 +97,13 @@ class FirestoreService {
     final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final ref = _db.collection('dailyReflections').doc('${uid}_$dateStr');
     final existing = await ref.get();
+    final allowed = <String>{
+      'question', 'answer', 'content', 'reflection', 'mood', 'source',
+    };
+    final safeData = Map<String, dynamic>.from(data)
+      ..removeWhere((key, _) => !allowed.contains(key));
     final payload = <String, dynamic>{
-      ...data,
+      ...safeData,
       'uid': uid,
       'date': dateStr,
       'updatedAt': FieldValue.serverTimestamp(),

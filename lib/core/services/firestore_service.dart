@@ -95,12 +95,20 @@ class FirestoreService {
 
   Future<void> saveDailyReflection(String uid, DateTime date, Map<String, dynamic> data) async {
     final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-    await _db.collection('dailyReflections').doc('${uid}_$dateStr').set({
+    final ref = _db.collection('dailyReflections').doc('${uid}_$dateStr');
+    final existing = await ref.get();
+    final payload = <String, dynamic>{
       ...data,
       'uid': uid,
       'date': dateStr,
-      'createdAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (existing.exists) {
+      // Keep the original creation timestamp immutable on updates.
+      await ref.update(payload);
+    } else {
+      await ref.set({...payload, 'createdAt': FieldValue.serverTimestamp()});
+    }
   }
 }
 

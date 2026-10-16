@@ -15,7 +15,8 @@ service cloud.firestore {
 
     function activeOwner(uid) {
       return owner(uid)
-        && get(/databases/$(database)/documents/users/$(uid)).data.isDeleted != true;
+        && (!( 'isDeleted' in get(/databases/$(database)/documents/users/$(uid)).data)
+          || get(/databases/$(database)/documents/users/$(uid)).data.isDeleted != true);
     }
 
     function validOptionalString(data, field, maxLength) {
@@ -45,7 +46,7 @@ service cloud.firestore {
       let data = request.resource.data;
       let changed = data.diff(resource.data).affectedKeys();
       return owner(uid)
-        && resource.data.isDeleted != true
+        && (!( 'isDeleted' in resource.data) || resource.data.isDeleted != true)
         && changed.hasOnly([
           'displayName', 'photoURL', 'lastLogin', 'updatedAt', 'preferences',
           'themePreference', 'companion', 'room', 'reminderHour',
@@ -148,7 +149,7 @@ service cloud.firestore {
     // User profile: clients may create a free profile and edit only presentation/preferences.
     // Entitlements, admin claims, partner status, and server-computed counters are immutable to clients.
     match /users/{uid} {
-      allow read: if owner(uid) && resource.data.isDeleted != true;
+      allow read: if owner(uid) && (!( 'isDeleted' in resource.data) || resource.data.isDeleted != true);
       allow create: if validUserCreate(uid);
       allow update: if validUserUpdate(uid);
       allow delete: if false;

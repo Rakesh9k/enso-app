@@ -87,5 +87,5 @@ export const deleteUserAccount = onCall({ enforceAppCheck: false, timeoutSeconds
 export const deleteUserAccountWeb = onCall({ enforceAppCheck: false, timeoutSeconds: 540 }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
-  return handleAccountDeletion(uid);
+  return deleteAccountDataForUid(uid);
 });

@@ -25,9 +25,23 @@ async function deleteUserData(uid: string): Promise<Failure[]> {
   for (const name of ["journalEntries", "meditationSessions", "aiInsights", "dailyReflections", "roomProgress"]) {
     await attempt(name, () => deleteQuery(name, "uid", uid));
   }
-  for (const name of ["userSubscriptions", "partners", "partner_profiles", "partner_applications", "partner_activity"]) {
+  for (const name of ["userSubscriptions", "partners", "partner_applications", "partner_activity"]) {
     await attempt(name, async () => db.recursiveDelete(db.collection(name).doc(uid)));
   }
+
+  // Do not silently destroy financial ledgers/payout history. If either exists,
+  // surface a partial failure for an approved retention/anonymization workflow.
+  await attempt("partner_profiles financial retention review", async () => {
+    const profileRef = db.collection("partner_profiles").doc(uid);
+    const [ledger, payouts] = await Promise.all([
+      profileRef.collection("ledger").limit(1).get(),
+      profileRef.collection("payouts").limit(1).get(),
+    ]);
+    if (!ledger.empty || !payouts.empty) {
+      throw new Error("Partner financial records exist; apply the approved retention/anonymization policy before deleting this profile.");
+    }
+    await db.recursiveDelete(profileRef);
+  });
   await attempt("partner_campaigns", () => deleteQuery("partner_campaigns", "partnerId", uid));
   await attempt("partner_milestones", () => deleteQuery("partner_milestones", "partnerId", uid));
   for (const name of ["partner_referrals", "partner_clicks"]) {

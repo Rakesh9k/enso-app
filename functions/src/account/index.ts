@@ -37,7 +37,7 @@ async function deleteUserData(uid: string): Promise<Failure[]> {
   return failures;
 }
 
-async function handleAccountDeletion(uid: string): Promise<{ deleted: true }> {
+export async function deleteAccountDataForUid(uid: string): Promise<{ deleted: true }> {
   const jobRef = db.collection("accountDeletionJobs").doc(uid);
   await jobRef.set({
     uid, status: "processing",
@@ -81,7 +81,7 @@ async function handleAccountDeletion(uid: string): Promise<{ deleted: true }> {
 export const deleteUserAccount = onCall({ enforceAppCheck: false, timeoutSeconds: 540 }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
-  return handleAccountDeletion(uid);
+  return deleteAccountDataForUid(uid);
 });
 
 export const deleteUserAccountWeb = onCall({ enforceAppCheck: false, timeoutSeconds: 540 }, async (request) => {
